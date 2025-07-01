@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import "./App.css";
 
 // Initialize socket connection
-const socket = io("https://real-time-cricket-team-selection-room-bvmw.onrender.com/");
+const socket = io("https://real-time-cricket-team-selection-room-bvmw.onrender.com");
 
 function App() {
   const [roomId, setRoomId] = useState("");
@@ -192,7 +192,7 @@ useEffect(() => {
     try {
       const response = await fetch(
         `${
-           "https://real-time-cricket-team-selection-room-bvmw.onrender.com/"
+          "https://real-time-cricket-team-selection-room-bvmw.onrender.com"
         }/api/create-room`,
         {
           method: "POST",
