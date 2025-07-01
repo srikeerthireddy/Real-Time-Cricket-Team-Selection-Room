@@ -9,10 +9,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://real-time-cricket-team-selection-ro.vercel.app/",
+    origin: "https://real-time-cricket-team-selection-ro.vercel.app",
     methods: ['GET', 'POST'],
+    credentials: true
   },
 });
+
 
 app.use(cors());
 app.use(express.json());
