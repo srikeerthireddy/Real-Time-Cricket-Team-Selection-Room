@@ -19,16 +19,42 @@ function setupSocket(io, rooms) {
 
       const room = rooms[roomId];
       
-      // Check if username is already taken in this room
-      const existingUser = room.users.find(u => u.username.toLowerCase() === username.toLowerCase());
-      if (existingUser) {
-        socket.emit('error', { message: 'Username already taken in this room' });
-        return;
-      }
+      // Check if this is a reconnection (user was disconnected)
+      const disconnectedUser = room.disconnectedUsers?.find(u => u.username.toLowerCase() === username.toLowerCase());
+      
+      if (disconnectedUser) {
+        // Reconnecting user
+        console.log(`User ${username} reconnecting to room ${roomId}`);
+        
+        // Remove from disconnected users and add back to active users
+        room.disconnectedUsers = room.disconnectedUsers.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+        const user = { id: socket.id, username: username.trim() };
+        room.users.push(user);
+        
+        // Update selections mapping
+        room.selections[socket.id] = disconnectedUser.selections || [];
+        
+        // Update turn order if game is running
+        if (room.started && room.turnOrder.length > 0) {
+          const turnIndex = room.turnOrder.findIndex(oldId => oldId === disconnectedUser.id);
+          if (turnIndex !== -1) {
+            room.turnOrder[turnIndex] = socket.id;
+          }
+        }
+        
+        // Clear reconnection timeout if it exists
+        if (disconnectedUser.timeout) {
+          clearTimeout(disconnectedUser.timeout);
+        }
+      } else {
+        // New user joining
+        // Check if username is already taken in this room
+        const existingUser = room.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (existingUser) {
+          socket.emit('error', { message: 'Username already taken in this room' });
+          return;
+        }
 
-      // Check if user is already in the room (reconnection)
-      const existingSocketUser = room.users.find(u => u.id === socket.id);
-      if (!existingSocketUser) {
         const user = { id: socket.id, username: username.trim() };
         room.users.push(user);
         room.selections[socket.id] = [];
@@ -43,6 +69,9 @@ function setupSocket(io, rooms) {
       
       // Send updated room info to all users
       io.to(roomId).emit('room-users', room.users);
+      
+      // Send disconnected users info to all users
+      io.to(roomId).emit('disconnected-users', room.disconnectedUsers || []);
       
       // Send host info to the joining user
       socket.emit('host-status', { 
@@ -82,7 +111,7 @@ function setupSocket(io, rooms) {
         return;
       }
 
-      // Need at least 2 users to start
+      // Need at least 2 users to start (host + 1 player)
       if (room.users.length < 2) {
         socket.emit('error', { message: 'Need at least 2 players to start' });
         return;
@@ -115,6 +144,58 @@ function setupSocket(io, rooms) {
       setTimeout(() => {
         startTurn(io, roomId, rooms);
       }, 1000);
+    });
+
+    socket.on('play-again', ({ roomId }) => {
+      const room = rooms[roomId];
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      
+      if (socket.id !== room.hostId) {
+        socket.emit('error', { message: 'Only host can restart the game' });
+        return;
+      }
+
+      // Reset game state
+      room.started = false;
+      room.currentTurnIndex = 0;
+      room.turnOrder = [];
+      room.pool = generatePlayerPool();
+      
+      // Reset selections for all users
+      room.users.forEach(user => {
+        room.selections[user.id] = [];
+      });
+      
+      // Clear any existing timer
+      if (room.timer) {
+        clearTimeout(room.timer);
+        room.timer = null;
+      }
+
+      // Notify all users about the reset
+      io.to(roomId).emit('play-again');
+      
+      console.log(`Game reset for room ${roomId} by host`);
+    });
+
+    socket.on('exit-room', ({ roomId }) => {
+      const room = rooms[roomId];
+      if (!room) {
+        return;
+      }
+      
+      if (socket.id === room.hostId) {
+        // Host is exiting, close the room
+        io.to(roomId).emit('room-closed', { message: 'Host has closed the room' });
+        
+        // Clean up
+        if (room.timer) clearTimeout(room.timer);
+        delete rooms[roomId];
+        console.log(`Room ${roomId} closed by host`);
+      }
     });
 
     socket.on('select-player', ({ roomId, player }) => {
@@ -178,52 +259,74 @@ function setupSocket(io, rooms) {
         if (userIndex !== -1) {
           const disconnectedUser = room.users[userIndex];
           
-          // Don't remove user immediately, just mark as disconnected
-          // This allows for reconnection
           console.log(`User ${disconnectedUser.username} disconnected from room ${roomId}`);
           
-          // Remove user from room after a delay (to allow reconnection)
-          setTimeout(() => {
-            const currentUserIndex = room.users.findIndex(u => u.id === socket.id);
-            if (currentUserIndex !== -1) {
-              // User didn't reconnect, remove them
-              room.users.splice(currentUserIndex, 1);
-              delete room.selections[socket.id];
-              
-              // Remove from turn order
-              const turnIndex = room.turnOrder.indexOf(socket.id);
-              if (turnIndex !== -1) {
-                room.turnOrder.splice(turnIndex, 1);
-                // Adjust current turn index if needed
-                if (room.currentTurnIndex > turnIndex) {
-                  room.currentTurnIndex--;
-                } else if (room.currentTurnIndex >= room.turnOrder.length && room.turnOrder.length > 0) {
-                  room.currentTurnIndex = 0;
-                }
-              }
-
-              // If disconnected user was host, assign new host
-              if (room.hostId === socket.id && room.users.length > 0) {
-                room.hostId = room.users[0].id;
-                io.to(room.hostId).emit('host-status', { isHost: true, started: room.started });
-              }
-
-              // Clean up empty rooms
-              if (room.users.length === 0) {
-                if (room.timer) clearTimeout(room.timer);
-                delete rooms[roomId];
-                console.log(`Room ${roomId} deleted - no users left`);
-              } else {
-                // Notify remaining users
-                io.to(roomId).emit('room-users', room.users);
-                
-                // If game was in progress and it was disconnected user's turn, move to next
-                if (room.started && room.turnOrder.length > 0 && room.currentTurnIndex < room.turnOrder.length) {
-                  startTurn(io, roomId, rooms);
-                }
+          // Remove user from active users
+          room.users.splice(userIndex, 1);
+          
+          // Add to disconnected users list
+          if (!room.disconnectedUsers) {
+            room.disconnectedUsers = [];
+          }
+          
+          room.disconnectedUsers.push({
+            id: socket.id,
+            username: disconnectedUser.username,
+            selections: room.selections[socket.id] || [],
+            disconnectedAt: new Date().toISOString()
+          });
+          
+          // Notify all users about disconnection
+          io.to(roomId).emit('room-users', room.users);
+          io.to(roomId).emit('disconnected-users', room.disconnectedUsers);
+          
+          // Set timeout to remove user permanently after 5 minutes
+          const timeout = setTimeout(() => {
+            // Remove from disconnected users if still there
+            if (room.disconnectedUsers) {
+              room.disconnectedUsers = room.disconnectedUsers.filter(u => u.id !== socket.id);
+              io.to(roomId).emit('disconnected-users', room.disconnectedUsers);
+            }
+            
+            // Clean up selections
+            delete room.selections[socket.id];
+            
+            // Remove from turn order
+            const turnIndex = room.turnOrder.indexOf(socket.id);
+            if (turnIndex !== -1) {
+              room.turnOrder.splice(turnIndex, 1);
+              // Adjust current turn index if needed
+              if (room.currentTurnIndex > turnIndex) {
+                room.currentTurnIndex--;
+              } else if (room.currentTurnIndex >= room.turnOrder.length && room.turnOrder.length > 0) {
+                room.currentTurnIndex = 0;
               }
             }
-          }, 30000); // 30 second grace period for reconnection
+            
+            console.log(`User ${disconnectedUser.username} permanently removed from room ${roomId}`);
+          }, 300000); // 5 minutes
+          
+          // Store timeout reference
+          const disconnectedUserObj = room.disconnectedUsers.find(u => u.id === socket.id);
+          if (disconnectedUserObj) {
+            disconnectedUserObj.timeout = timeout;
+          }
+
+          // If disconnected user was host, assign new host
+          if (room.hostId === socket.id && room.users.length > 0) {
+            room.hostId = room.users[0].id;
+            io.to(room.hostId).emit('host-status', { isHost: true, started: room.started });
+          }
+
+          // Clean up empty rooms
+          if (room.users.length === 0 && (!room.disconnectedUsers || room.disconnectedUsers.length === 0)) {
+            if (room.timer) clearTimeout(room.timer);
+            delete rooms[roomId];
+            console.log(`Room ${roomId} deleted - no users left`);
+          } else if (room.started && room.turnOrder.length > 0 && room.currentTurnIndex < room.turnOrder.length) {
+            // If game was in progress and it was disconnected user's turn, move to next
+            startTurn(io, roomId, rooms);
+          }
         }
       }
     });
@@ -247,10 +350,7 @@ function startTurn(io, roomId, rooms) {
     io.to(roomId).emit('selection-ended', { results });
     console.log('Selection ended for room:', roomId);
     
-    // Reset room state
-    room.started = false;
-    room.currentTurnIndex = 0;
-    room.turnOrder = [];
+    // Don't reset room state - let host decide what to do next
     return;
   }
 
@@ -265,7 +365,7 @@ function startTurn(io, roomId, rooms) {
     const user = room.users.find(u => u.id === userId);
     
     if (!user) {
-      // User not found, skip to next
+      // User not found (maybe disconnected), skip to next
       room.currentTurnIndex++;
       attempts++;
       continue;
@@ -308,11 +408,6 @@ function startTurn(io, roomId, rooms) {
   const results = getSelectionsWithUsernames(room);
   io.to(roomId).emit('selection-ended', { results });
   console.log('Selection ended for room:', roomId);
-  
-  // Reset room state
-  room.started = false;
-  room.currentTurnIndex = 0;
-  room.turnOrder = [];
 }
 
 function autoSelect(io, roomId, rooms) {
@@ -394,6 +489,19 @@ function shuffleArray(arr) {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+function generatePlayerPool() {
+  return [
+    'Virat Kohli', 'Rohit Sharma', 'MS Dhoni', 'Jasprit Bumrah', 
+    'Ravindra Jadeja', 'Shubman Gill', 'KL Rahul', 'Hardik Pandya',
+    'Ravichandran Ashwin', 'Suryakumar Yadav', 'Mohammed Shami', 
+    'Shreyas Iyer', 'Rishabh Pant', 'Yuzvendra Chahal', 'Bhuvneshwar Kumar',
+    'Axar Patel', 'Ishan Kishan', 'Washington Sundar', 'Kuldeep Yadav',
+    'Deepak Chahar', 'Prithvi Shaw', 'Sanju Samson', 'Umran Malik',
+    'Arshdeep Singh', 'Tilak Varma', 'Mohammed Siraj', 'Shardul Thakur',
+    'Dinesh Karthik', 'Deepak Hooda', 'Ruturaj Gaikwad'
+  ];
 }
 
 module.exports = setupSocket;

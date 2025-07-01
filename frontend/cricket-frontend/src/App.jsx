@@ -13,6 +13,7 @@ function App() {
   const [isHost, setIsHost] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [users, setUsers] = useState([]);
+  const [disconnectedUsers, setDisconnectedUsers] = useState([]);
   const [turnOrder, setTurnOrder] = useState([]);
   const [currentTurn, setCurrentTurn] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -25,6 +26,7 @@ function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [roomClosed, setRoomClosed] = useState(false);
 
   // Clear timer function
   const clearTimer = useCallback(() => {
@@ -56,15 +58,21 @@ useEffect(() => {
   // Handle room users update
   socket.on('room-users', (userList) => {
     setUsers(userList);
-    setLoading(false); // Reset loading when we get room updates
+    setLoading(false);
     console.log('👥 Users updated:', userList);
+  });
+
+  // Handle disconnected users update
+  socket.on('disconnected-users', (disconnectedUserList) => {
+    setDisconnectedUsers(disconnectedUserList);
+    console.log('👥 Disconnected users updated:', disconnectedUserList);
   });
 
   // Handle host status
   socket.on('host-status', ({ isHost: hostStatus, started }) => {
     setIsHost(hostStatus);
     setGameStarted(started);
-    setLoading(false); // Reset loading when we get host status
+    setLoading(false);
     console.log('👑 Host status:', hostStatus, 'Started:', started);
   });
 
@@ -77,7 +85,7 @@ useEffect(() => {
       setPlayerPool(pool);
       setSelections(gameSelections);
       setGameStarted(true);
-      setLoading(false); // Reset loading when game starts
+      setLoading(false);
       
       if (order.length > 0 && currentTurnIndex < order.length) {
         setCurrentTurn(order[currentTurnIndex]);
@@ -90,7 +98,7 @@ useEffect(() => {
     console.log('📋 Turn order received:', order);
     setTurnOrder(order);
     setGameStarted(true);
-    setLoading(false); // Reset loading when we get turn order
+    setLoading(false);
   });
 
   // Handle turn updates
@@ -100,7 +108,7 @@ useEffect(() => {
     setCurrentUserId(userId);
     setTimer(seconds);
     setMyTurn(userId === socket.id);
-    setLoading(false); // Reset loading on turn updates
+    setLoading(false);
     
     // Clear any existing timer
     clearTimer();
@@ -119,11 +127,35 @@ useEffect(() => {
     setIntervalId(id);
   });
 
+  // Handle play again event
+  socket.on('play-again', () => {
+    console.log('🔄 Play again initiated');
+    setResults(null);
+    setGameStarted(false);
+    setTurnOrder([]);
+    setCurrentTurn(null);
+    setCurrentUserId(null);
+    setPlayerPool([]);
+    setSelections({});
+    setMyTurn(false);
+    setTimer(10);
+    setLoading(false);
+    clearTimer();
+  });
+
+  // Handle room closed event
+  socket.on('room-closed', ({ message }) => {
+    console.log('🚪 Room closed:', message);
+    setRoomClosed(true);
+    setError(message);
+    clearTimer();
+  });
+
   // Handle errors
   socket.on('error', ({ message }) => {
     console.log('💥 Socket error:', message);
     setError(message);
-    setLoading(false); // Reset loading on errors
+    setLoading(false);
     setTimeout(() => setError(''), 5000);
   });
 
@@ -169,6 +201,7 @@ useEffect(() => {
     socket.off('disconnect');
     socket.off('connect_error');
     socket.off('room-users');
+    socket.off('disconnected-users');
     socket.off('host-status');
     socket.off('game-state');
     socket.off('turn-order');
@@ -177,6 +210,8 @@ useEffect(() => {
     socket.off('player-selected');
     socket.off('auto-selected');
     socket.off('selection-ended');
+    socket.off('play-again');
+    socket.off('room-closed');
     socket.off('error');
     clearTimer();
   };
@@ -227,6 +262,7 @@ useEffect(() => {
 
     setLoading(true);
     setError("");
+    setRoomClosed(false);
     socket.emit("join-room", {
       roomId: roomToJoin.trim().toUpperCase(),
       username: username.trim(),
@@ -248,12 +284,10 @@ useEffect(() => {
     }
 
     setLoading(true);
-    setError(""); // Clear any previous errors
+    setError("");
 
     console.log("🚀 Emitting start-selection event");
-    socket.emit("start-selection", { roomId }, (response) => {
-      console.log("📨 start-selection callback:", response);
-    });
+    socket.emit("start-selection", { roomId });
 
     // Add timeout to reset loading if no response
     setTimeout(() => {
@@ -263,11 +297,25 @@ useEffect(() => {
         setLoading(false);
         setError("Failed to start game. Please try again.");
       }
-    }, 10000); // 10 second timeout
+    }, 10000);
+  };
+
+  const handlePlayAgain = () => {
+    if (isHost) {
+      setLoading(true);
+      socket.emit("play-again", { roomId });
+    }
+  };
+
+  const handleExit = () => {
+    if (isHost) {
+      socket.emit("exit-room", { roomId });
+      resetGame();
+    }
   };
 
   const selectPlayer = (player) => {
-    if (myTurn && !loading) {
+    if (myTurn && !loading && !isHost) {
       setLoading(true);
       socket.emit("select-player", { roomId, player });
 
@@ -286,6 +334,7 @@ useEffect(() => {
     setIsHost(false);
     setGameStarted(false);
     setUsers([]);
+    setDisconnectedUsers([]);
     setTurnOrder([]);
     setCurrentTurn(null);
     setCurrentUserId(null);
@@ -298,346 +347,299 @@ useEffect(() => {
     setLoading(false);
     setRoomId("");
     setUsername("");
+    setRoomClosed(false);
   };
 
-  const copyRoomId = () => {
+const copyRoomId = () => {
     navigator.clipboard.writeText(roomId).then(() => {
-      // Show success message briefly
       const originalError = error;
       setError("Room ID copied to clipboard!");
       setTimeout(() => setError(originalError), 2000);
     });
   };
 
-  // Get connection status indicator
-  const getConnectionIndicator = () => {
-    switch (connectionStatus) {
-      case "connected":
-        return <div className="connection-status connected">🟢 Connected</div>;
-      case "connecting":
-        return (
-          <div className="connection-status connecting">🟡 Connecting...</div>
-        );
-      case "disconnected":
-        return (
-          <div className="connection-status disconnected">🔴 Disconnected</div>
-        );
-      case "error":
-        return (
-          <div className="connection-status error">❌ Connection Error</div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1 className="app-title">🏏 Cricket Team Selector</h1>
-        {getConnectionIndicator()}
-      </header>
-
-      {error && (
-        <div
-          className={`message ${
-            error.includes("copied") ? "success-message" : "error-message"
-          }`}
-        >
-          {error.includes("copied") ? "✅" : "❌"} {error}
+  if (roomClosed) {
+    return (
+      <div className="app">
+        <div className="container">
+          <div className="error-message">
+            <h2>Room Closed</h2>
+            <p>{error}</p>
+            <button onClick={resetGame} className="btn-primary">
+              Go Back to Home
+            </button>
+          </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {loading && (
-        <div className="loading-message">
-          <div className="loading-spinner"></div>⏳ Loading...
-        </div>
-      )}
-
-      {!joined && (
-        <div className="join-form">
-          <div className="form-group">
-            <label htmlFor="username">Your Name</label>
+  if (!joined) {
+    return (
+      <div className="app">
+        <div className="container">
+          <h1>Cricket Team Selection</h1>
+          <div className="form">
             <input
-              id="username"
-              placeholder="Enter your name"
+              type="text"
+              placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="input-field"
               disabled={loading}
-              maxLength={20}
             />
-          </div>
-
-          <div className="room-actions">
-            <button
-              onClick={createRoom}
-              className="btn btn-success btn-large"
-              disabled={loading || !username.trim()}
-            >
-              🆕 Create New Room
-            </button>
-
-            <div className="divider">
-              <span>OR</span>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="roomId">Room ID</label>
-              <input
-                id="roomId"
-                placeholder="Enter Room ID"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                className="input-field"
-                disabled={loading}
-                maxLength={8}
-              />
-            </div>
-            <button
-              onClick={() => handleJoin()}
-              className="btn btn-primary btn-large"
-              disabled={loading || !roomId.trim() || !username.trim()}
-            >
-              🚪 Join Room
-            </button>
-          </div>
-        </div>
-      )}
-
-      {joined && (
-        <div className="game-container">
-          {/* Room Info */}
-          <div className="room-info">
-            <div className="room-header">
-              <h2 className="room-title">Room: {roomId}</h2>
+            <input
+              type="text"
+              placeholder="Enter Room ID to join"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+              disabled={loading}
+            />
+            <div className="button-group">
               <button
-                onClick={copyRoomId}
-                className="btn btn-copy"
-                title="Copy Room ID"
+                onClick={() => handleJoin()}
+                disabled={loading || !roomId.trim() || !username.trim()}
+                className="btn-secondary"
               >
-                📋
+                {loading ? "Joining..." : "Join Room"}
+              </button>
+              <button
+                onClick={createRoom}
+                disabled={loading || !username.trim()}
+                className="btn-primary"
+              >
+                {loading ? "Creating..." : "Create Room"}
               </button>
             </div>
+            {error && <div className="error-message">{error}</div>}
+            <div className="connection-status">
+              Status: <span className={`status ${connectionStatus}`}>
+                {connectionStatus === 'connected' ? '🟢 Connected' :
+                 connectionStatus === 'connecting' ? '🟡 Connecting...' :
+                 connectionStatus === 'disconnected' ? '🔴 Disconnected' :
+                 '❌ Connection Error'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-            {isHost && <div className="host-badge">👑 You are the host</div>}
+  return (
+    <div className="app">
+      <div className="container">
+        <div className="room-header">
+          <h1>Room: {roomId}</h1>
+          <button onClick={copyRoomId} className="copy-btn">
+            📋 Copy Room ID
+          </button>
+          {isHost && (
+            <span className="host-badge">👑 Host</span>
+          )}
+        </div>
 
-            <div className="players-section">
-              <h3 className="players-title">
-                Players in Room ({users.length})
-              </h3>
-              <div className="players-grid">
-                {users.map((user, idx) => (
-                  <div
-                    key={idx}
-                    className={`player-card ${
-                      user.id === socket.id ? "current-user" : ""
-                    }`}
-                  >
+        {error && <div className="error-message">{error}</div>}
+
+        <div className="users-section">
+          <h3>Players ({users.length})</h3>
+          <div className="users-list">
+            {users.map((user) => (
+              <div key={user.id} className="user-item">
+                <span>{user.username}</span>
+                {user.id === users.find(u => u.id === roomId)?.hostId && (
+                  <span className="host-indicator">👑</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {disconnectedUsers.length > 0 && (
+            <div className="disconnected-section">
+              <h4>Disconnected Players ({disconnectedUsers.length})</h4>
+              <div className="disconnected-list">
+                {disconnectedUsers.map((user, index) => (
+                  <div key={index} className="disconnected-user">
                     <span>{user.username}</span>
-                    {user.id === socket.id && (
-                      <span className="you-badge">You</span>
-                    )}
-                    {isHost &&
-                      user.id === users.find((u) => u.id === socket.id)?.id && (
-                        <span className="crown">👑</span>
-                      )}
+                    <span className="disconnected-indicator">🔴 Disconnected</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Host Controls */}
-          {isHost && !gameStarted && !results && (
-            <div className="host-controls">
-              {users.length >= 2 ? (
-                <div className="start-section">
-                  <p className="info-text">
-                    Ready to start! Other players will select their teams.
-                  </p>
-                  <button
-                    onClick={handleStart}
-                    className="btn btn-success btn-large"
-                    disabled={loading}
-                  >
-                    🎯 Start Team Selection
-                  </button>
-                </div>
-              ) : (
-                <div className="waiting-section">
-                  <p className="info-text">
-                    Need at least 2 players to start the selection process
-                  </p>
-                  <div className="share-room">
-                    <p>
-                      Share Room ID: <strong>{roomId}</strong>
-                    </p>
-                    <button onClick={copyRoomId} className="btn btn-small">
-                      📋 Copy
-                    </button>
+        {!gameStarted && !results && (
+          <div className="pre-game">
+            {isHost ? (
+              <div className="host-controls">
+                <p>You are the host. Start the game when ready!</p>
+                <button
+                  onClick={handleStart}
+                  disabled={loading || users.length < 2}
+                  className="btn-primary"
+                >
+                  {loading ? "Starting..." : "Start Selection"}
+                </button>
+                {users.length < 2 && (
+                  <p className="warning">Need at least 2 players to start</p>
+                )}
+              </div>
+            ) : (
+              <div className="waiting">
+                <p>Waiting for host to start the game...</p>
+                <div className="loading-spinner"></div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {gameStarted && !results && (
+          <div className="game-section">
+            <div className="turn-info">
+              {turnOrder.length > 0 && (
+                <div className="turn-order">
+                  <h3>Turn Order:</h3>
+                  <div className="turn-list">
+                    {turnOrder.map((username, index) => (
+                      <span 
+                        key={index} 
+                        className={`turn-item ${username === currentTurn ? 'current' : ''}`}
+                      >
+                        {username}
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Turn Order */}
-          {turnOrder.length > 0 && !results && (
-            <div className="turn-order-container">
-              <h3 className="section-title">🔄 Selection Order</h3>
-              <div className="turn-order-list">
-                {turnOrder.map((name, i) => (
-                  <div
-                    key={i}
-                    className={`turn-item ${
-                      name === currentTurn ? "active" : ""
-                    }`}
-                  >
-                    <span className="turn-number">{i + 1}</span>
-                    <span className="turn-name">{name}</span>
-                    {name === currentTurn && (
-                      <span className="turn-indicator">⏰</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Current Turn & Timer */}
-          {gameStarted && !results && currentTurn && (
-            <div className="current-turn-container">
-              <div className={`turn-status ${myTurn ? "my-turn" : ""}`}>
-                <h3 className="turn-title">
-                  {myTurn ? "🎯 Your Turn!" : `${currentTurn}'s Turn`}
-                </h3>
-                {timer > 0 && (
-                  <div
-                    className={`timer ${
-                      timer <= 3 ? "urgent" : timer <= 5 ? "warning" : ""
-                    }`}
-                  >
-                    <div className="timer-circle">
-                      <span className="timer-number">{timer}</span>
+              {currentTurn && (
+                <div className="current-turn">
+                  <h3>
+                    {myTurn ? "Your Turn!" : `${currentTurn}'s Turn`}
+                  </h3>
+                  {timer > 0 && (
+                    <div className="timer">
+                      Time remaining: <span className="countdown">{timer}s</span>
                     </div>
-                    <span className="timer-text">seconds left</span>
-                  </div>
-                )}
-                {myTurn && (
-                  <p className="instruction-text">
-                    Choose a player for your team!
-                  </p>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Player Pool */}
-          {gameStarted && !results && playerPool.length > 0 && (
-            <div className="player-pool-container">
-              <h3 className="section-title">
-                🏏 Available Players{" "}
-                <span className="player-count">
-                  ({playerPool.length} remaining)
-                </span>
-              </h3>
-              <div className="player-pool-grid">
-                {playerPool.map((player, idx) => (
+            {/* Player selection - only show for non-host players */}
+            {!isHost && myTurn && playerPool.length > 0 && (
+              <div className="player-selection">
+                <h3>Select a Player:</h3>
+                <div className="player-pool">
+                  {playerPool.map((player, index) => (
+                    <button
+                      key={index}
+                      onClick={() => selectPlayer(player)}
+                      disabled={loading}
+                      className="player-btn"
+                    >
+                      {player}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Host view during game */}
+            {isHost && (
+              <div className="host-view">
+                <h3>Game in Progress</h3>
+                <p>Players are selecting their teams...</p>
+                <div className="available-players">
+                  <h4>Available Players ({playerPool.length}):</h4>
+                  <div className="player-list">
+                    {playerPool.map((player, index) => (
+                      <span key={index} className="available-player">
+                        {player}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Current selections display */}
+            {Object.keys(selections).length > 0 && (
+              <div className="selections-display">
+                <h3>Current Selections:</h3>
+                <div className="selections-grid">
+                  {Object.entries(selections).map(([username, playerList]) => (
+                    <div key={username} className="user-selection">
+                      <h4>{username} ({playerList.length}/5)</h4>
+                      <ul>
+                        {playerList.map((player, index) => (
+                          <li key={index}>{player}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loading && (
+              <div className="loading">
+                <div className="loading-spinner"></div>
+                <p>Processing...</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {results && (
+          <div className="results-section">
+            <h2>🏆 Final Teams</h2>
+            <div className="results-grid">
+              {Object.entries(results).map(([username, team]) => (
+                <div key={username} className="team-result">
+                  <h3>{username}'s Team</h3>
+                  <ul className="team-list">
+                    {team.map((player, index) => (
+                      <li key={index} className="team-player">
+                        {player}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            {/* Host controls after game ends */}
+            {isHost && (
+              <div className="host-end-controls">
+                <div className="button-group">
                   <button
-                    key={idx}
-                    onClick={() => selectPlayer(player)}
-                    className={`player-button ${
-                      myTurn && !loading ? "selectable" : "disabled"
-                    }`}
-                    disabled={!myTurn || loading}
+                    onClick={handlePlayAgain}
+                    disabled={loading}
+                    className="btn-primary"
                   >
-                    {player}
+                    {loading ? "Starting..." : "🔄 Play Again"}
                   </button>
-                ))}
+                  <button
+                    onClick={handleExit}
+                    className="btn-danger"
+                  >
+                    🚪 Exit Room
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Current Selections */}
-          {gameStarted && !results && Object.keys(selections).length > 0 && (
-            <div className="selections-container">
-              <h3 className="section-title">📋 Current Teams</h3>
-              <div className="selections-grid">
-                {Object.entries(selections).map(([username, players]) => (
-                  <div key={username} className="selection-card">
-                    <h4 className="team-owner">{username}'s Team</h4>
-                    <div className="selected-players">
-                      {players.length > 0 ? (
-                        players.map((player, idx) => (
-                          <span key={idx} className="selected-player">
-                            {player}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="no-players">
-                          No players selected yet
-                        </span>
-                      )}
-                    </div>
-                    <div className="team-count">{players.length}/5 players</div>
-                  </div>
-                ))}
+            {/* Non-host view after game ends */}
+            {!isHost && (
+              <div className="player-end-view">
+                <p>Waiting for host to decide next action...</p>
+                <div className="loading-spinner"></div>
               </div>
-            </div>
-          )}
-
-          {/* Results */}
-          {results && (
-            <div className="results-container">
-              <h2 className="section-title">🏆 Final Teams</h2>
-              <div className="results-grid">
-                {Object.entries(results).map(([username, players]) => (
-                  <div key={username} className="result-card">
-                    <h3 className="team-owner-final">
-                      {username}'s Final Team
-                    </h3>
-                    <div className="final-players">
-                      {players.map((player, idx) => (
-                        <div key={idx} className="final-player">
-                          <span className="player-number">{idx + 1}.</span>
-                          <span className="player-name">{player}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="team-stats">
-                      Total Players: {players.length}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="game-actions">
-                <button
-                  onClick={resetGame}
-                  className="btn btn-primary btn-large"
-                >
-                  🆕 Start New Game
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Waiting for Game */}
-          {!isHost && !gameStarted && !results && (
-            <div className="waiting-container">
-              <div className="waiting-message">
-                <h3>⏳ Waiting for host to start the game...</h3>
-                <p>The host will begin team selection when ready.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <footer className="app-footer">
-        <p>🏏 Cricket Team Selector - Real-time Multiplayer</p>
-      </footer>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
