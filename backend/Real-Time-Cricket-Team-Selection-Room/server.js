@@ -1,133 +1,102 @@
-// backend/server.js
+// 📁 backend/server.js
 const express = require('express');
 const http = require('http');
+const cors = require('cors');
 const { Server } = require('socket.io');
 const setupSocket = require('./socketHandler');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, {
+  cors: {
+    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
+    methods: ['GET', 'POST'],
+  },
+});
 
-const PORT = 3000;
+app.use(cors());
 app.use(express.json());
 
-let rooms = {}; // Shared with socketHandler
-setupSocket(io, rooms); // Pass rooms object
+const PORT = process.env.PORT || 3000;
+const rooms = {};
 
-// Health Check
-app.get("/", (req, res) => {
-    res.send("Backend is working ✅");
+// Initialize socket handling
+setupSocket(io, rooms);
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: '✅ Real-time Cricket Team Selection Backend Running',
+    activeRooms: Object.keys(rooms).length,
+    timestamp: new Date().toISOString()
+  });
 });
 
-// 🔁 1. Test Join Room
-app.post("/test-join", (req, res) => {
-    const { roomId, userName } = req.body;
-    if (!rooms[roomId]) {
-        rooms[roomId] = {
-            users: [],
-            pool: generatePlayerPool(),
-            selections: {},
-            turnOrder: [],
-            currentTurnIndex: 0,
-            started: false,
-        };
-    }
-    const userId = `manual-${Date.now()}`;
-    rooms[roomId].users.push({ id: userId, username: userName });
-    rooms[roomId].selections[userId] = [];
-
-    res.json({ message: `User ${userName} added to ${roomId}`, room: rooms[roomId] });
+// Create room endpoint
+app.post('/api/create-room', (req, res) => {
+  const roomId = generateRoomId();
+  rooms[roomId] = {
+    hostId: null,
+    users: [],
+    selections: {},
+    turnOrder: [],
+    currentTurnIndex: 0,
+    started: false,
+    pool: generatePlayerPool(),
+    timer: null,
+    createdAt: new Date().toISOString()
+  };
+  
+  res.json({ roomId, message: 'Room created successfully' });
 });
 
-// 🎬 2. Test Start Selection
-app.post("/test-start", (req, res) => {
-    const { roomId } = req.body;
-    const room = rooms[roomId];
-    if (!room) return res.status(404).json({ error: "Room not found" });
-    if (room.started) return res.status(400).json({ error: "Selection already started" });
-
-    room.started = true;
-    room.turnOrder = shuffleArray(room.users.map(u => u.id));
-    room.currentTurnIndex = 0;
-
-    res.json({
-        message: "Selection started",
-        turnOrder: room.turnOrder.map(id => room.users.find(u => u.id === id)?.username),
-    });
+// Get room info endpoint
+app.get('/api/room/:roomId', (req, res) => {
+  const room = rooms[req.params.roomId];
+  if (!room) {
+    return res.status(404).json({ error: 'Room not found' });
+  }
+ 
+  res.json({
+    roomId: req.params.roomId,
+    userCount: room.users.length,
+    users: room.users.map(u => ({ username: u.username })), // Don't expose socket IDs
+    started: room.started,
+    poolSize: room.pool.length,
+    createdAt: room.createdAt
+  });
 });
 
-// 🏏 3. Test Select Player
-app.post("/test-select", (req, res) => {
-    const { roomId, userId, player } = req.body;
-    const room = rooms[roomId];
-    if (!room || !room.started) return res.status(400).json({ error: "Selection not started" });
-
-    const currentUserId = room.turnOrder[room.currentTurnIndex];
-    if (userId !== currentUserId) return res.status(403).json({ error: "Not your turn" });
-    if (!room.pool.includes(player)) return res.status(400).json({ error: "Invalid player" });
-
-    room.selections[userId].push(player);
-    room.pool = room.pool.filter(p => p !== player);
-
-    room.currentTurnIndex++;
-    if (room.currentTurnIndex >= room.turnOrder.length) {
-        room.currentTurnIndex = 0;
-    }
-
-    res.json({ message: `Player ${player} selected by ${userId}` });
+// Get all active rooms endpoint
+app.get('/api/rooms', (req, res) => {
+  const roomList = Object.keys(rooms).map(roomId => ({
+    roomId,
+    userCount: rooms[roomId].users.length,
+    started: rooms[roomId].started,
+    createdAt: rooms[roomId].createdAt
+  }));
+  
+  res.json({ rooms: roomList, total: roomList.length });
 });
 
-// ⏱️ 4. Test Auto-Select
-app.post("/test-auto", (req, res) => {
-    const { roomId } = req.body;
-    const room = rooms[roomId];
-    if (!room) return res.status(404).json({ error: "Room not found" });
-
-    const userId = room.turnOrder[room.currentTurnIndex];
-    const autoPlayer = room.pool[0];
-    if (!autoPlayer) return res.status(400).json({ error: "No players left" });
-
-    room.selections[userId].push(autoPlayer);
-    room.pool = room.pool.filter(p => p !== autoPlayer);
-
-    room.currentTurnIndex++;
-    if (room.currentTurnIndex >= room.turnOrder.length) {
-        room.currentTurnIndex = 0;
-    }
-
-    res.json({ message: `Auto-selected ${autoPlayer} for ${userId}` });
-});
-
-// 🏁 5. Test Selection End Check
-app.post("/test-end", (req, res) => {
-    const { roomId } = req.body;
-    const room = rooms[roomId];
-    if (!room) return res.status(404).json({ error: "Room not found" });
-
-    const allDone = Object.values(room.selections).every(sel => sel.length === 5);
-    if (!allDone) return res.json({ message: "Selection not yet completed" });
-
-    const result = {};
-    for (const uid in room.selections) {
-        const user = room.users.find(u => u.id === uid);
-        result[user?.username || uid] = room.selections[uid];
-    }
-
-    res.json({ message: "Selection ended", results: result });
-});
-
-// Reuse shuffle & player pool
-function shuffleArray(arr) {
-    return arr.sort(() => Math.random() - 0.5);
+function generateRoomId() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 function generatePlayerPool() {
-    return [
-        'Virat', 'Rohit', 'Dhoni', 'Bumrah', 'Jadeja', 'Gill',
-        'Rahul', 'Pandya', 'Ashwin', 'Surya', 'Shami', 'Iyer'
-    ];
+  return [
+    'Virat Kohli', 'Rohit Sharma', 'MS Dhoni', 'Jasprit Bumrah', 
+    'Ravindra Jadeja', 'Shubman Gill', 'KL Rahul', 'Hardik Pandya',
+    'Ravichandran Ashwin', 'Suryakumar Yadav', 'Mohammed Shami', 
+    'Shreyas Iyer', 'Rishabh Pant', 'Yuzvendra Chahal', 'Bhuvneshwar Kumar',
+    'Axar Patel', 'Ishan Kishan', 'Washington Sundar', 'Kuldeep Yadav',
+    'Deepak Chahar', 'Prithvi Shaw', 'Sanju Samson', 'Umran Malik',
+    'Arshdeep Singh', 'Tilak Varma', 'Mohammed Siraj', 'Shardul Thakur',
+    'Dinesh Karthik', 'Deepak Hooda', 'Ruturaj Gaikwad'
+  ];
 }
 
 server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🎯 Socket.IO ready for connections`);
 });
