@@ -4,8 +4,8 @@ import { io } from "socket.io-client";
 import "./App.css";
 
 
-const createRoomURL = import.meta.env.BACKEND_URL 
-  ? `${import.meta.env.BACKEND_URL}/api/create-room` 
+const createRoomURL = import.meta.env.VITE_BACKEND_URL 
+  ? `${import.meta.env.VITE_BACKEND_URL}/api/create-room` 
   : "http://localhost:3000/api/create-room";
 
 
