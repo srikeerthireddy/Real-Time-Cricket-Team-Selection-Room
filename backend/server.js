@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://real-time-cricket-team-selection-ro.vercel.app",
+    origin: process.env.FRONTENT_URL || "http://localhost:3000",
     methods: ['GET', 'POST'],
     credentials: true
   },
