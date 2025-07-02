@@ -5,7 +5,7 @@ import "./App.css";
 
 
 const createRoomURL = import.meta.env.VITE_BACKEND_URL 
-  ? `${import.meta.env.VITE_BACKEND_URL}/api/create-room` 
+  ? `${import.meta.env.BACKEND_URL}/api/create-room` 
   : "http://localhost:3000/api/create-room";
 
 
