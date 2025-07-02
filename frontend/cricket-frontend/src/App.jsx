@@ -3,13 +3,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { io } from "socket.io-client";
 import "./App.css";
 
-
-
-
-// REST API endpoint
-
-const BackendURL = process.env.REACT_APP_BACKEND_URL
-
 // Initialize socket connection
 const socket = io(process.env.REACT_APP_BACKEND_URL, {
   transports: ['websocket'],
@@ -281,7 +274,7 @@ function App() {
     setLoading(true);
     try {
       const response = await fetch(
-        `${BackendURL}api/create-room`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/create-room`,
       {
         method: "POST",
           headers: {
