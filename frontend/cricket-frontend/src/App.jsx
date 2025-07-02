@@ -817,7 +817,7 @@ useEffect(() => {
                       <div key={index} className="final-player">
                         <div className="final-player-image-container">
                           <img 
-                            src={player.image} 
+                            src={`../images/${player.image}`} 
                             alt={player.name}
                             className="final-player-image"
                             onError={(e) => {
