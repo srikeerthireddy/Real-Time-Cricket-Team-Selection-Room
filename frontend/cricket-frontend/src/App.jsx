@@ -173,7 +173,7 @@ useEffect(() => {
     setMyTurn(false);
     setLoading(false);
     clearTimer();
-    console.log(`✅ ${username} selected ${player}`);
+    console.log(`✅ ${username} selected ${player.name}`);
   });
 
   socket.on('auto-selected', ({ player, user, username, selections: updatedSelections, pool }) => {
@@ -182,7 +182,7 @@ useEffect(() => {
     setMyTurn(false);
     setLoading(false);
     clearTimer();
-    console.log(`🤖 Auto-selected ${player} for ${username}`);
+    console.log(`🤖 Auto-selected ${player.name} for ${username}`);
   });
 
   socket.on('selection-ended', ({ results: finalResults }) => {
@@ -315,7 +315,7 @@ useEffect(() => {
   };
 
   const selectPlayer = (player) => {
-    if (myTurn && !loading && !isHost) {
+    if (myTurn && !loading) {
       setLoading(true);
       socket.emit("select-player", { roomId, player });
 
@@ -472,7 +472,7 @@ const copyRoomId = () => {
           <div className="pre-game">
             {isHost ? (
               <div className="host-controls">
-                <p>You are the host. Start the game when ready!</p>
+                <p>You are the host. You can also play! Start the game when ready!</p>
                 <button
                   onClick={handleStart}
                   disabled={loading || users.length < 2}
@@ -526,38 +526,59 @@ const copyRoomId = () => {
               )}
             </div>
 
-            {/* Player selection - only show for non-host players */}
-            {!isHost && myTurn && playerPool.length > 0 && (
+            {/* Player selection - now available for all players including host */}
+            {myTurn && playerPool.length > 0 && (
               <div className="player-selection">
                 <h3>Select a Player:</h3>
                 <div className="player-pool">
                   {playerPool.map((player, index) => (
-                    <button
+                    <div 
                       key={index}
+                      className={`player-card ${loading ? 'disabled' : ''}`}
                       onClick={() => selectPlayer(player)}
-                      disabled={loading}
-                      className="player-btn"
                     >
-                      {player}
-                    </button>
+                      <img 
+                        src={player.image} 
+                        alt={player.name}
+                        className="player-image"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/100x120?text=Player';
+                        }}
+                      />
+                      <div className="player-name">{player.name}</div>
+                      <div className="player-role">{player.role}</div>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Host view during game */}
-            {isHost && (
-              <div className="host-view">
+            {/* Game progress view for non-turn players */}
+            {!myTurn && (
+              <div className="spectator-view">
                 <h3>Game in Progress</h3>
-                <p>Players are selecting their teams...</p>
+                <p>Waiting for {currentTurn} to select...</p>
                 <div className="available-players">
                   <h4>Available Players ({playerPool.length}):</h4>
-                  <div className="player-list">
-                    {playerPool.map((player, index) => (
-                      <span key={index} className="available-player">
-                        {player}
-                      </span>
+                  <div className="player-grid">
+                    {playerPool.slice(0, 10).map((player, index) => (
+                      <div key={index} className="mini-player-card">
+                        <img 
+                          src={player.image} 
+                          alt={player.name}
+                          className="mini-player-image"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/60x70?text=Player';
+                          }}
+                        />
+                        <div className="mini-player-name">{player.name}</div>
+                      </div>
                     ))}
+                    {playerPool.length > 10 && (
+                      <div className="more-players">
+                        +{playerPool.length - 10} more
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -571,11 +592,21 @@ const copyRoomId = () => {
                   {Object.entries(selections).map(([username, playerList]) => (
                     <div key={username} className="user-selection">
                       <h4>{username} ({playerList.length}/5)</h4>
-                      <ul>
+                      <div className="selected-players">
                         {playerList.map((player, index) => (
-                          <li key={index}>{player}</li>
+                          <div key={index} className="selected-player">
+                            <img 
+                              src={player.image} 
+                              alt={player.name}
+                              className="selected-player-image"
+                              onError={(e) => {
+                                e.target.src = 'https://via.placeholder.com/50x60?text=Player';
+                              }}
+                            />
+                            <div className="selected-player-name">{player.name}</div>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -598,13 +629,24 @@ const copyRoomId = () => {
               {Object.entries(results).map(([username, team]) => (
                 <div key={username} className="team-result">
                   <h3>{username}'s Team</h3>
-                  <ul className="team-list">
+                  <div className="final-team">
                     {team.map((player, index) => (
-                      <li key={index} className="team-player">
-                        {player}
-                      </li>
+                      <div key={index} className="final-player">
+                        <img 
+                          src={player.image} 
+                          alt={player.name}
+                          className="final-player-image"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/80x95?text=Player';
+                          }}
+                        />
+                        <div className="final-player-info">
+                          <div className="final-player-name">{player.name}</div>
+                          <div className="final-player-role">{player.role}</div>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ))}
             </div>

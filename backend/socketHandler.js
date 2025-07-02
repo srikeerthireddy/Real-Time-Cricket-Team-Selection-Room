@@ -111,7 +111,7 @@ function setupSocket(io, rooms) {
         return;
       }
 
-      // Need at least 2 users to start (host + 1 player)
+      // Need at least 2 users to start
       if (room.users.length < 2) {
         socket.emit('error', { message: 'Need at least 2 players to start' });
         return;
@@ -119,13 +119,12 @@ function setupSocket(io, rooms) {
 
       room.started = true;
       
-      // Create turn order excluding the host
-      const nonHostUsers = room.users.filter(u => u.id !== room.hostId);
-      room.turnOrder = shuffleArray(nonHostUsers.map(u => u.id));
+      // Create turn order including ALL users (including host)
+      room.turnOrder = shuffleArray(room.users.map(u => u.id));
       room.currentTurnIndex = 0;
 
       console.log('Starting selection for room:', roomId);
-      console.log('Turn order (excluding host):', room.turnOrder.map(id => {
+      console.log('Turn order (including host):', room.turnOrder.map(id => {
         const user = room.users.find(u => u.id === id);
         return user ? user.username : 'Unknown';
       }));
@@ -205,19 +204,15 @@ function setupSocket(io, rooms) {
         return;
       }
 
-      // Check if user is host (hosts can't select players)
-      if (socket.id === room.hostId) {
-        socket.emit('error', { message: 'Host cannot select players' });
-        return;
-      }
-
       const currentUserId = room.turnOrder[room.currentTurnIndex];
       if (socket.id !== currentUserId) {
         socket.emit('error', { message: 'Not your turn' });
         return;
       }
 
-      if (!room.pool.includes(player)) {
+      // Find the player object in the pool
+      const playerObj = room.pool.find(p => p.name === player);
+      if (!playerObj) {
         socket.emit('error', { message: 'Player not available' });
         return;
       }
@@ -231,14 +226,14 @@ function setupSocket(io, rooms) {
       }
 
       // Add player to user's selection
-      room.selections[socket.id].push(player);
+      room.selections[socket.id].push(playerObj);
       // Remove player from pool
-      room.pool = room.pool.filter(p => p !== player);
+      room.pool = room.pool.filter(p => p.name !== player);
 
       // Broadcast the selection
       const username = room.users.find(u => u.id === socket.id)?.username;
       io.to(roomId).emit('player-selected', { 
-        player, 
+        player: playerObj, 
         user: socket.id, 
         username,
         selections: getSelectionsWithUsernames(room),
@@ -427,9 +422,9 @@ function autoSelect(io, roomId, rooms) {
   
   // Randomly select a player
   const randomIndex = Math.floor(Math.random() * room.pool.length);
-  const player = room.pool[randomIndex];
+  const playerObj = room.pool[randomIndex];
 
-  console.log(`Auto-selecting ${player} for user ${user.username}`);
+  console.log(`Auto-selecting ${playerObj.name} for user ${user.username}`);
 
   // Ensure selections array exists
   if (!room.selections[userId]) {
@@ -437,13 +432,13 @@ function autoSelect(io, roomId, rooms) {
   }
 
   // Add player to user's selection
-  room.selections[userId].push(player);
+  room.selections[userId].push(playerObj);
   // Remove player from pool
-  room.pool = room.pool.filter(p => p !== player);
+  room.pool = room.pool.filter(p => p.name !== playerObj.name);
 
   // Broadcast the auto-selection
   io.to(roomId).emit('auto-selected', { 
-    player, 
+    player: playerObj, 
     user: userId, 
     username: user.username,
     selections: getSelectionsWithUsernames(room),
@@ -493,14 +488,156 @@ function shuffleArray(arr) {
 
 function generatePlayerPool() {
   return [
-    'Virat Kohli', 'Rohit Sharma', 'MS Dhoni', 'Jasprit Bumrah', 
-    'Ravindra Jadeja', 'Shubman Gill', 'KL Rahul', 'Hardik Pandya',
-    'Ravichandran Ashwin', 'Suryakumar Yadav', 'Mohammed Shami', 
-    'Shreyas Iyer', 'Rishabh Pant', 'Yuzvendra Chahal', 'Bhuvneshwar Kumar',
-    'Axar Patel', 'Ishan Kishan', 'Washington Sundar', 'Kuldeep Yadav',
-    'Deepak Chahar', 'Prithvi Shaw', 'Sanju Samson', 'Umran Malik',
-    'Arshdeep Singh', 'Tilak Varma', 'Mohammed Siraj', 'Shardul Thakur',
-    'Dinesh Karthik', 'Deepak Hooda', 'Ruturaj Gaikwad'
+    {
+      name: 'Virat Kohli',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317684.png'
+    },
+    {
+      name: 'Rohit Sharma',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317681.png'
+    },
+    {
+      name: 'MS Dhoni',
+      role: 'Wicket-keeper',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317677.png'
+    },
+    {
+      name: 'Jasprit Bumrah',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317674.png'
+    },
+    {
+      name: 'Ravindra Jadeja',
+      role: 'All-rounder',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317675.png'
+    },
+    {
+      name: 'Shubman Gill',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317685.png'
+    },
+    {
+      name: 'KL Rahul',
+      role: 'Wicket-keeper',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317678.png'
+    },
+    {
+      name: 'Hardik Pandya',
+      role: 'All-rounder',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317679.png'
+    },
+    {
+      name: 'Ravichandran Ashwin',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317673.png'
+    },
+    {
+      name: 'Suryakumar Yadav',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317682.png'
+    },
+    {
+      name: 'Mohammed Shami',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317680.png'
+    },
+    {
+      name: 'Shreyas Iyer',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317683.png'
+    },
+    {
+      name: 'Rishabh Pant',
+      role: 'Wicket-keeper',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317676.png'
+    },
+    {
+      name: 'Yuzvendra Chahal',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317686.png'
+    },
+    {
+      name: 'Bhuvneshwar Kumar',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317687.png'
+    },
+    {
+      name: 'Axar Patel',
+      role: 'All-rounder',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317688.png'
+    },
+    {
+      name: 'Ishan Kishan',
+      role: 'Wicket-keeper',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317689.png'
+    },
+    {
+      name: 'Washington Sundar',
+      role: 'All-rounder',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317690.png'
+    },
+    {
+      name: 'Kuldeep Yadav',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317691.png'
+    },
+    {
+      name: 'Deepak Chahar',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317692.png'
+    },
+    {
+      name: 'Prithvi Shaw',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317693.png'
+    },
+    {
+      name: 'Sanju Samson',
+      role: 'Wicket-keeper',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317694.png'
+    },
+    {
+      name: 'Umran Malik',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317695.png'
+    },
+    {
+      name: 'Arshdeep Singh',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317696.png'
+    },
+    {
+      name: 'Tilak Varma',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317697.png'
+    },
+    {
+      name: 'Mohammed Siraj',
+      role: 'Bowler',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317698.png'
+    },
+    {
+      name: 'Shardul Thakur',
+      role: 'All-rounder',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317699.png'
+    },
+    {
+      name: 'Dinesh Karthik',
+      role: 'Wicket-keeper',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317700.png'
+    },
+    {
+      name: 'Deepak Hooda',
+      role: 'All-rounder',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317701.png'
+    },
+    {
+      name: 'Ruturaj Gaikwad',
+      role: 'Batsman',
+      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317702.png'
+    }
   ];
 }
 
