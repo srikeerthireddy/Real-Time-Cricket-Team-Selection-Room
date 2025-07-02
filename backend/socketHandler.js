@@ -491,153 +491,148 @@ function generatePlayerPool() {
     {
       name: 'Virat Kohli',
       role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317684.png'
+      image: './images/Virat.jpg'
     },
     {
       name: 'Rohit Sharma',
       role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317681.png'
+      image: './images/RohitSharma.jpg'
     },
     {
       name: 'MS Dhoni',
       role: 'Wicket-keeper',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317677.png'
+      image: './images/MSdhoni.webp'
     },
     {
       name: 'Jasprit Bumrah',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317674.png'
+      image: './images/Bumrah.jpg'
     },
     {
       name: 'Ravindra Jadeja',
       role: 'All-rounder',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317675.png'
+      image: './images/Jadeja.jpg'
     },
     {
       name: 'Shubman Gill',
       role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317685.png'
+      image: './images/Shubman.jpg'
     },
     {
       name: 'KL Rahul',
       role: 'Wicket-keeper',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317678.png'
+      image: './images/Rahul.jpg'
     },
     {
       name: 'Hardik Pandya',
       role: 'All-rounder',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317679.png'
+      image: './images/Hardik.jpg'
     },
     {
       name: 'Ravichandran Ashwin',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317673.png'
+      image: './images/Ashwin.jpg'
     },
     {
       name: 'Suryakumar Yadav',
       role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317682.png'
+      image: './images/Surya.jpg'
     },
     {
       name: 'Mohammed Shami',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317680.png'
+      image: './images/shami.webp'
     },
     {
       name: 'Shreyas Iyer',
       role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317683.png'
+      image: './images/shreyasIyer.webp'
     },
     {
       name: 'Rishabh Pant',
       role: 'Wicket-keeper',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317676.png'
+      image: './images/Pant.jpg'
     },
     {
       name: 'Yuzvendra Chahal',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317686.png'
+      image: './images/Chahal.jpg'
     },
     {
       name: 'Bhuvneshwar Kumar',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317687.png'
+      image: './images/Bhuvaneshwar.jpg'
     },
     {
       name: 'Axar Patel',
       role: 'All-rounder',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317688.png'
+      image: './images/Axar.jpg'
     },
     {
       name: 'Ishan Kishan',
       role: 'Wicket-keeper',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317689.png'
+      image: './images/IshanKishan.jpg'
     },
     {
       name: 'Washington Sundar',
       role: 'All-rounder',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317690.png'
+      image: './images/Sundar.jpg'
     },
     {
       name: 'Kuldeep Yadav',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317691.png'
+      image: './images/Kuldeep.jpg'
     },
     {
       name: 'Deepak Chahar',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317692.png'
+      image: './images/DeepakChar.jpg'
     },
     {
       name: 'Prithvi Shaw',
       role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317693.png'
+      image: './images/Prithvishaw.jpg'
     },
     {
       name: 'Sanju Samson',
       role: 'Wicket-keeper',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317694.png'
+      image: './images/Sanju.jpg'
     },
     {
       name: 'Umran Malik',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317695.png'
+      image: './images/Umran.jpg'
     },
     {
       name: 'Arshdeep Singh',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317696.png'
+      image: './images/Arshdeep.jpg'
     },
     {
       name: 'Tilak Varma',
       role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317697.png'
+      image: './images/Tilak.jpg'
     },
     {
       name: 'Mohammed Siraj',
       role: 'Bowler',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317698.png'
+      image: './images/Siraj.jpg'
     },
     {
       name: 'Shardul Thakur',
       role: 'All-rounder',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317699.png'
+      image: './images/Shardul.jpg'
     },
     {
       name: 'Dinesh Karthik',
       role: 'Wicket-keeper',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317700.png'
+      image: './images/Dinesh.jpg'
     },
     {
       name: 'Deepak Hooda',
       role: 'All-rounder',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317701.png'
+      image: './images/Deepak.jpg'
     },
-    {
-      name: 'Ruturaj Gaikwad',
-      role: 'Batsman',
-      image: 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_320,q_50/lsci/db/PICTURES/CMS/317600/317702.png'
-    }
   ];
 }
 
