@@ -31,7 +31,7 @@ function setupSocket(io, rooms) {
         const user = { id: socket.id, username: username.trim() };
         room.users.push(user);
         
-        // Update selections mapping
+        // Restore selections - KEEP the old selections
         room.selections[socket.id] = disconnectedUser.selections || [];
         
         // Update turn order if game is running
@@ -39,6 +39,13 @@ function setupSocket(io, rooms) {
           const turnIndex = room.turnOrder.findIndex(oldId => oldId === disconnectedUser.id);
           if (turnIndex !== -1) {
             room.turnOrder[turnIndex] = socket.id;
+            
+            // If it was this user's turn, they need to continue
+            if (room.currentTurnIndex === turnIndex) {
+              setTimeout(() => {
+                startTurn(io, roomId, rooms);
+              }, 1000);
+            }
           }
         }
         
@@ -48,20 +55,51 @@ function setupSocket(io, rooms) {
         }
       } else {
         // New user joining
-        // Check if username is already taken in this room
+        // Check if username is already taken in this room (among active users)
         const existingUser = room.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        
+        // Also check if user is in disconnected list (should not happen, but safety check)
+        const existingDisconnected = room.disconnectedUsers?.find(u => u.username.toLowerCase() === username.toLowerCase());
+        
         if (existingUser) {
           socket.emit('error', { message: 'Username already taken in this room' });
           return;
         }
 
-        const user = { id: socket.id, username: username.trim() };
-        room.users.push(user);
-        room.selections[socket.id] = [];
-        
-        // Set first user as host
-        if (!room.hostId) {
-          room.hostId = socket.id;
+        // If user exists in disconnected list, treat as reconnection
+        if (existingDisconnected) {
+          console.log(`Found user ${username} in disconnected list, treating as reconnection`);
+          
+          // Remove from disconnected users and add back to active users
+          room.disconnectedUsers = room.disconnectedUsers.filter(u => u.username.toLowerCase() !== username.toLowerCase());
+          const user = { id: socket.id, username: username.trim() };
+          room.users.push(user);
+          
+          // Restore selections
+          room.selections[socket.id] = existingDisconnected.selections || [];
+          
+          // Update turn order if game is running
+          if (room.started && room.turnOrder.length > 0) {
+            const turnIndex = room.turnOrder.findIndex(oldId => oldId === existingDisconnected.id);
+            if (turnIndex !== -1) {
+              room.turnOrder[turnIndex] = socket.id;
+            }
+          }
+          
+          // Clear reconnection timeout if it exists
+          if (existingDisconnected.timeout) {
+            clearTimeout(existingDisconnected.timeout);
+          }
+        } else {
+          // Completely new user
+          const user = { id: socket.id, username: username.trim() };
+          room.users.push(user);
+          room.selections[socket.id] = [];
+          
+          // Set first user as host
+          if (!room.hostId) {
+            room.hostId = socket.id;
+          }
         }
       }
 
@@ -163,10 +201,18 @@ function setupSocket(io, rooms) {
       room.turnOrder = [];
       room.pool = generatePlayerPool();
       
-      // Reset selections for all users
+      // Reset selections for all users (both active and disconnected)
       room.users.forEach(user => {
         room.selections[user.id] = [];
       });
+      
+      // Also reset selections for disconnected users
+      if (room.disconnectedUsers) {
+        room.disconnectedUsers.forEach(user => {
+          room.selections[user.id] = [];
+          user.selections = []; // Update the stored selections too
+        });
+      }
       
       // Clear any existing timer
       if (room.timer) {
@@ -190,8 +236,14 @@ function setupSocket(io, rooms) {
         // Host is exiting, close the room
         io.to(roomId).emit('room-closed', { message: 'Host has closed the room' });
         
-        // Clean up
+        // Clean up all timeouts
         if (room.timer) clearTimeout(room.timer);
+        if (room.disconnectedUsers) {
+          room.disconnectedUsers.forEach(user => {
+            if (user.timeout) clearTimeout(user.timeout);
+          });
+        }
+        
         delete rooms[roomId];
         console.log(`Room ${roomId} closed by host`);
       }
@@ -225,6 +277,11 @@ function setupSocket(io, rooms) {
         room.timer = null;
       }
 
+      // Ensure selections array exists
+      if (!room.selections[socket.id]) {
+        room.selections[socket.id] = [];
+      }
+
       // Add player to user's selection
       room.selections[socket.id].push(playerObj);
       // Remove player from pool
@@ -256,10 +313,13 @@ function setupSocket(io, rooms) {
           
           console.log(`User ${disconnectedUser.username} disconnected from room ${roomId}`);
           
+          // Store current selections before removing user
+          const currentSelections = room.selections[socket.id] || [];
+          
           // Remove user from active users
           room.users.splice(userIndex, 1);
           
-          // Add to disconnected users list
+          // Add to disconnected users list with current selections
           if (!room.disconnectedUsers) {
             room.disconnectedUsers = [];
           }
@@ -267,7 +327,7 @@ function setupSocket(io, rooms) {
           room.disconnectedUsers.push({
             id: socket.id,
             username: disconnectedUser.username,
-            selections: room.selections[socket.id] || [],
+            selections: currentSelections,
             disconnectedAt: new Date().toISOString()
           });
           
@@ -286,15 +346,23 @@ function setupSocket(io, rooms) {
             // Clean up selections
             delete room.selections[socket.id];
             
-            // Remove from turn order
+            // Remove from turn order and adjust current turn index
             const turnIndex = room.turnOrder.indexOf(socket.id);
             if (turnIndex !== -1) {
               room.turnOrder.splice(turnIndex, 1);
-              // Adjust current turn index if needed
+              
+              // Adjust current turn index
               if (room.currentTurnIndex > turnIndex) {
                 room.currentTurnIndex--;
               } else if (room.currentTurnIndex >= room.turnOrder.length && room.turnOrder.length > 0) {
                 room.currentTurnIndex = 0;
+              }
+              
+              // If game is still running and we have players, continue
+              if (room.started && room.turnOrder.length > 0) {
+                setTimeout(() => {
+                  startTurn(io, roomId, rooms);
+                }, 1000);
               }
             }
             
@@ -313,14 +381,25 @@ function setupSocket(io, rooms) {
             io.to(room.hostId).emit('host-status', { isHost: true, started: room.started });
           }
 
+          // If it was this user's turn when they disconnected, move to next turn
+          if (room.started && room.turnOrder.length > 0) {
+            const currentTurnUserId = room.turnOrder[room.currentTurnIndex];
+            if (currentTurnUserId === socket.id) {
+              console.log('Disconnected user was current turn, moving to next turn');
+              moveToNextTurn(io, roomId, rooms);
+            }
+          }
+
           // Clean up empty rooms
           if (room.users.length === 0 && (!room.disconnectedUsers || room.disconnectedUsers.length === 0)) {
             if (room.timer) clearTimeout(room.timer);
+            if (room.disconnectedUsers) {
+              room.disconnectedUsers.forEach(user => {
+                if (user.timeout) clearTimeout(user.timeout);
+              });
+            }
             delete rooms[roomId];
             console.log(`Room ${roomId} deleted - no users left`);
-          } else if (room.started && room.turnOrder.length > 0 && room.currentTurnIndex < room.turnOrder.length) {
-            // If game was in progress and it was disconnected user's turn, move to next
-            startTurn(io, roomId, rooms);
           }
         }
       }
@@ -334,8 +413,9 @@ function startTurn(io, roomId, rooms) {
     return;
   }
 
-  // Check if selection is complete
-  const allSelectionsComplete = room.turnOrder.every(userId => 
+  // Check if selection is complete (all active users have 5 players)
+  const activeUserIds = room.users.map(u => u.id);
+  const allSelectionsComplete = activeUserIds.every(userId => 
     room.selections[userId] && room.selections[userId].length >= 5
   );
   
@@ -344,8 +424,6 @@ function startTurn(io, roomId, rooms) {
     const results = getSelectionsWithUsernames(room);
     io.to(roomId).emit('selection-ended', { results });
     console.log('Selection ended for room:', roomId);
-    
-    // Don't reset room state - let host decide what to do next
     return;
   }
 
@@ -360,7 +438,7 @@ function startTurn(io, roomId, rooms) {
     const user = room.users.find(u => u.id === userId);
     
     if (!user) {
-      // User not found (maybe disconnected), skip to next
+      // User not found (disconnected), skip to next
       room.currentTurnIndex++;
       attempts++;
       continue;
@@ -376,7 +454,7 @@ function startTurn(io, roomId, rooms) {
     }
 
     // Found a user who needs more players
-    console.log(`Starting turn for user: ${user.username}`);
+    console.log(`Starting turn for user: ${user.username}, current selections: ${userSelections.length}`);
 
     // Notify the current user it's their turn
     io.to(userId).emit('your-turn', { pool: room.pool });
@@ -389,6 +467,10 @@ function startTurn(io, roomId, rooms) {
     });
 
     // Set up auto-selection timer (10 seconds)
+    if (room.timer) {
+      clearTimeout(room.timer);
+    }
+    
     room.timer = setTimeout(() => {
       // Check if it's still the same user's turn and room still exists
       if (rooms[roomId] && room.turnOrder[room.currentTurnIndex] === userId) {
@@ -399,7 +481,7 @@ function startTurn(io, roomId, rooms) {
     return;
   }
 
-  // If we get here, all users have 5 players
+  // If we get here, all active users have 5 players
   const results = getSelectionsWithUsernames(room);
   io.to(roomId).emit('selection-ended', { results });
   console.log('Selection ended for room:', roomId);
@@ -469,11 +551,24 @@ function moveToNextTurn(io, roomId, rooms) {
 
 function getSelectionsWithUsernames(room) {
   const results = {};
+  
+  // Get selections for active users
   for (const userId in room.selections) {
     const user = room.users.find(u => u.id === userId);
-    const username = user?.username || `User-${userId.slice(0, 6)}`;
-    results[username] = room.selections[userId] || [];
+    if (user) {
+      results[user.username] = room.selections[userId] || [];
+    }
   }
+  
+  // Also include disconnected users' selections if they have any
+  if (room.disconnectedUsers) {
+    room.disconnectedUsers.forEach(disconnectedUser => {
+      if (disconnectedUser.selections && disconnectedUser.selections.length > 0) {
+        results[disconnectedUser.username] = disconnectedUser.selections;
+      }
+    });
+  }
+  
   return results;
 }
 
@@ -606,7 +701,7 @@ function generatePlayerPool() {
     {
       name: 'Arshdeep Singh',
       role: 'Bowler',
-      image: 'https://media.gettyimages.com/id/2155145712/photo/new-york-new-york-arshdeep-singh-of-india-poses-for-a-portrait-prior-to-the-icc-mens-t20.jpg?s=612x612&w=gi&k=20&c=6Su-q6u9ihQ8CuJSDztRbedBtLSMQblFsSSURim8EIc='
+      image: 'https://media.gettyimages.com/id/2155145712/photo/new-york-new-york-arshdeep-singh-of-india-poses-for-a-portrait-prior-to-the-icc-mens-t20.jpg?s=612x612&w=gi&k=20&c=6Su-q6u9ihQ8CuJSDztRbedBtLSNMQblFsSSURim8EIc='
     },
     {
       name: 'Tilak Varma',
