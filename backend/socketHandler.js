@@ -701,7 +701,7 @@ function generatePlayerPool() {
     {
       name: 'Arshdeep Singh',
       role: 'Bowler',
-      image: 'https://media.gettyimages.com/id/2155145712/photo/new-york-new-york-arshdeep-singh-of-india-poses-for-a-portrait-prior-to-the-icc-mens-t20.jpg?s=612x612&w=gi&k=20&c=6Su-q6u9ihQ8CuJSDztRbedBtLSNMQblFsSSURim8EIc='
+      image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3k_b9rdRgfm7MwregvYkkuIa7H0NMjSY9UQ&s'
     },
     {
       name: 'Tilak Varma',
