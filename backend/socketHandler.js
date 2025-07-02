@@ -12,7 +12,7 @@ function setupSocket(io, rooms) {
       
       // Check if room exists
       if (!rooms[roomId]) {
-        socket.emit('error', { message: 'Room not found' });
+        socket.emit('custom-error', { message: 'Room not found' });
         return;
       }
 
@@ -134,7 +134,8 @@ function setupSocket(io, rooms) {
     socket.on('start-selection', ({ roomId }) => {
       const room = rooms[roomId];
       if (!room) {
-        socket.emit('error', { message: 'Room not found' });
+        socket.emit('custom-error', { message: 'Room not found' });
+
         return;
       }
       
@@ -185,7 +186,8 @@ function setupSocket(io, rooms) {
     socket.on('play-again', ({ roomId }) => {
       const room = rooms[roomId];
       if (!room) {
-        socket.emit('error', { message: 'Room not found' });
+        socket.emit('custom-error', { message: 'Room not found' });
+
         return;
       }
       

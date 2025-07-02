@@ -4,13 +4,15 @@ import { io } from "socket.io-client";
 import "./App.css";
 
 
-const createRoomURL = process.env.REACT_APP_BACKEND_URL
-  ? `${process.env.REACT_APP_BACKEND_URL}/api/create-room`
-  : "http://localhost:3000/api/create-room";
 
+
+// REST API endpoint
+
+const BackendURL = process.env.REACT_APP_BACKEND_URL
 
 // Initialize socket connection
-const socket = io({createRoomURL});
+const socket = io({BackendURL});
+
 
 function App() {
   const [roomId, setRoomId] = useState("");
@@ -273,7 +275,8 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch(createRoomURL,
+      const response = await fetch(
+        `${BackendURL}api/create-room`,
       {
         method: "POST",
           headers: {
