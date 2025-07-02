@@ -491,147 +491,147 @@ function generatePlayerPool() {
     {
       name: 'Virat Kohli',
       role: 'Batsman',
-      image: './images/Virat.jpg'
+      image: 'Virat.jpg'
     },
     {
       name: 'Rohit Sharma',
       role: 'Batsman',
-      image: './images/RohitSharma.jpg'
+      image: 'RohitSharma.jpg'
     },
     {
       name: 'MS Dhoni',
       role: 'Wicket-keeper',
-      image: './images/MSdhoni.webp'
+      image: 'MSdhoni.webp'
     },
     {
       name: 'Jasprit Bumrah',
       role: 'Bowler',
-      image: './images/Bumrah.jpg'
+      image: 'Bumrah.jpg'
     },
     {
       name: 'Ravindra Jadeja',
       role: 'All-rounder',
-      image: './images/Jadeja.jpg'
+      image: 'Jadeja.jpg'
     },
     {
       name: 'Shubman Gill',
       role: 'Batsman',
-      image: './images/Shubman.jpg'
+      image: 'Shubman.jpg'
     },
     {
       name: 'KL Rahul',
       role: 'Wicket-keeper',
-      image: './images/Rahul.jpg'
+      image: 'Rahul.jpg'
     },
     {
       name: 'Hardik Pandya',
       role: 'All-rounder',
-      image: './images/Hardik.jpg'
+      image: 'Hardik.jpg'
     },
     {
       name: 'Ravichandran Ashwin',
       role: 'Bowler',
-      image: './images/Ashwin.jpg'
+      image: 'Ashwin.jpg'
     },
     {
       name: 'Suryakumar Yadav',
       role: 'Batsman',
-      image: './images/Surya.jpg'
+      image: 'Surya.jpg'
     },
     {
       name: 'Mohammed Shami',
       role: 'Bowler',
-      image: './images/shami.webp'
+      image: 'shami.webp'
     },
     {
       name: 'Shreyas Iyer',
       role: 'Batsman',
-      image: './images/shreyasIyer.webp'
+      image: 'shreyasIyer.webp'
     },
     {
       name: 'Rishabh Pant',
       role: 'Wicket-keeper',
-      image: './images/Pant.jpg'
+      image: 'Pant.jpg'
     },
     {
       name: 'Yuzvendra Chahal',
       role: 'Bowler',
-      image: './images/Chahal.jpg'
+      image: 'Chahal.jpg'
     },
     {
       name: 'Bhuvneshwar Kumar',
       role: 'Bowler',
-      image: './images/Bhuvaneshwar.jpg'
+      image: 'Bhuvaneshwar.jpg'
     },
     {
       name: 'Axar Patel',
       role: 'All-rounder',
-      image: './images/Axar.jpg'
+      image: 'Axar.jpg'
     },
     {
       name: 'Ishan Kishan',
       role: 'Wicket-keeper',
-      image: './images/IshanKishan.jpg'
+      image: 'IshanKishan.jpg'
     },
     {
       name: 'Washington Sundar',
       role: 'All-rounder',
-      image: './images/Sundar.jpg'
+      image: 'Sundar.jpg'
     },
     {
       name: 'Kuldeep Yadav',
       role: 'Bowler',
-      image: './images/Kuldeep.jpg'
+      image: 'Kuldeep.jpg'
     },
     {
       name: 'Deepak Chahar',
       role: 'Bowler',
-      image: './images/DeepakChar.jpg'
+      image: 'DeepakChar.jpg'
     },
     {
       name: 'Prithvi Shaw',
       role: 'Batsman',
-      image: './images/Prithvishaw.jpg'
+      image: 'Prithvishaw.jpg'
     },
     {
       name: 'Sanju Samson',
       role: 'Wicket-keeper',
-      image: './images/Sanju.jpg'
+      image: 'Sanju.jpg'
     },
     {
       name: 'Umran Malik',
       role: 'Bowler',
-      image: './images/Umran.jpg'
+      image: 'Umran.jpg'
     },
     {
       name: 'Arshdeep Singh',
       role: 'Bowler',
-      image: './images/Arshdeep.jpg'
+      image: 'Arshdeep.jpg'
     },
     {
       name: 'Tilak Varma',
       role: 'Batsman',
-      image: './images/Tilak.jpg'
+      image: 'Tilak.jpg'
     },
     {
       name: 'Mohammed Siraj',
       role: 'Bowler',
-      image: './images/Siraj.jpg'
+      image: 'Siraj.jpg'
     },
     {
       name: 'Shardul Thakur',
       role: 'All-rounder',
-      image: './images/Shardul.jpg'
+      image: 'Shardul.jpg'
     },
     {
       name: 'Dinesh Karthik',
       role: 'Wicket-keeper',
-      image: './images/Dinesh.jpg'
+      image: 'Dinesh.jpg'
     },
     {
       name: 'Deepak Hooda',
       role: 'All-rounder',
-      image: './images/Deepak.jpg'
+      image: 'Deepak.jpg'
     },
   ];
 }

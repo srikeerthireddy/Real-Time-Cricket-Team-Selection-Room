@@ -60,6 +60,8 @@ useEffect(() => {
         username: username.trim(),
       });
     }
+
+    
   });
 
   socket.on('disconnect', () => {
