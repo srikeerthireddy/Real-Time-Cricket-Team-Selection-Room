@@ -1,4 +1,3 @@
-// 📁 backend/socketHandler.js
 function setupSocket(io, rooms) {
   io.on('connection', (socket) => {
     console.log(`🟢 Connected: ${socket.id}`);
