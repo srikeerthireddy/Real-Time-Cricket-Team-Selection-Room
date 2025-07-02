@@ -491,147 +491,147 @@ function generatePlayerPool() {
     {
       name: 'Virat Kohli',
       role: 'Batsman',
-      image: 'Virat.jpg'
+      image: 'https://upload.wikimedia.org/wikipedia/commons/9/9b/Virat_Kohli_in_PMO_New_Delhi.jpg'
     },
     {
       name: 'Rohit Sharma',
       role: 'Batsman',
-      image: 'RohitSharma.jpg'
+      image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoVuOX9HV9kcrTird7QDU9Zul_7164R4_XBQ&s'
     },
     {
       name: 'MS Dhoni',
       role: 'Wicket-keeper',
-      image: 'MSdhoni.webp'
+      image: 'https://cdn.britannica.com/25/222725-050-170F622A/Indian-cricketer-Mahendra-Singh-Dhoni-2011.jpg'
     },
     {
       name: 'Jasprit Bumrah',
       role: 'Bowler',
-      image: 'Bumrah.jpg'
+      image: 'https://upload.wikimedia.org/wikipedia/commons/0/02/Jasprit_Bumrah_in_PMO_New_Delhi.jpg'
     },
     {
       name: 'Ravindra Jadeja',
       role: 'All-rounder',
-      image: 'Jadeja.jpg'
+      image: 'https://upload.wikimedia.org/wikipedia/commons/2/2c/PM_Shri_Narendra_Modi_with_Ravindra_Jadeja_%28Cropped%29.jpg'
     },
     {
       name: 'Shubman Gill',
       role: 'Batsman',
-      image: 'Shubman.jpg'
+      image: 'https://documents.iplt20.com/ipl/IPLHeadshot2025/62.png'
     },
     {
       name: 'KL Rahul',
       role: 'Wicket-keeper',
-      image: 'Rahul.jpg'
+      image: 'https://documents.bcci.tv/resizedimageskirti/1125_compress.png'
     },
     {
       name: 'Hardik Pandya',
       role: 'All-rounder',
-      image: 'Hardik.jpg'
+      image: 'https://upload.wikimedia.org/wikipedia/commons/f/fc/Hardik_Pandya_in_PMO_New_Delhi.jpg'
     },
     {
       name: 'Ravichandran Ashwin',
       role: 'Bowler',
-      image: 'Ashwin.jpg'
+      image: 'https://i2.wp.com/crictoday.com/wp-content/uploads/2023/03/316521.webp?ssl=1'
     },
     {
       name: 'Suryakumar Yadav',
       role: 'Batsman',
-      image: 'Surya.jpg'
+      image: 'https://upload.wikimedia.org/wikipedia/commons/b/b7/Suryakumar_Yadav_in_PMO_New_Delhi.jpg'
     },
     {
       name: 'Mohammed Shami',
       role: 'Bowler',
-      image: 'shami.webp'
+      image: 'https://www.gujarattitansipl.com/static-assets/images/players/28994.png?v=5.55'
     },
     {
       name: 'Shreyas Iyer',
       role: 'Batsman',
-      image: 'shreyasIyer.webp'
+      image: 'https://documents.bcci.tv/resizedimageskirti/1563_compress.png'
     },
     {
       name: 'Rishabh Pant',
       role: 'Wicket-keeper',
-      image: 'Pant.jpg'
+      image: 'https://media.gettyimages.com/id/2155145413/photo/new-york-new-york-rishabh-pant-of-india-poses-for-a-portrait-prior-to-the-icc-mens-t20.jpg?s=612x612&w=gi&k=20&c=I8p09aXSvPR_FK-zO9PPakfibNsDh8VJFqOuwgeKG0A='
     },
     {
       name: 'Yuzvendra Chahal',
       role: 'Bowler',
-      image: 'Chahal.jpg'
+      image: 'https://media.gettyimages.com/id/2155703340/photo/new-york-new-york-yuzendra-chahal-of-india-poses-for-a-portrait-prior-to-the-icc-mens-t20.jpg?s=612x612&w=gi&k=20&c=SHJi9nPilxkpbl5t4zg103hZCFta17DfrCDgvQOwSOs='
     },
     {
       name: 'Bhuvneshwar Kumar',
       role: 'Bowler',
-      image: 'Bhuvaneshwar.jpg'
+      image: 'https://i.pinimg.com/474x/a9/6d/0b/a96d0bbd8cb438403105ee8aaf840cfb.jpg'
     },
     {
       name: 'Axar Patel',
       role: 'All-rounder',
-      image: 'Axar.jpg'
+      image: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Axar_Patel_in_PMO_New_Delhi.jpg'
     },
     {
       name: 'Ishan Kishan',
       role: 'Wicket-keeper',
-      image: 'IshanKishan.jpg'
+      image: 'https://documents.bcci.tv/resizedimageskirti/31_compress.png'
     },
     {
       name: 'Washington Sundar',
       role: 'All-rounder',
-      image: 'Sundar.jpg'
+      image: 'https://static-files.cricket-australia.pulselive.com/headshots/440/10947-camedia.png'
     },
     {
       name: 'Kuldeep Yadav',
       role: 'Bowler',
-      image: 'Kuldeep.jpg'
+      image: 'https://media.gettyimages.com/id/1713187439/photo/thiruvananthapuram-india-kuldeep-yadav-of-india-poses-for-a-portrait-ahead-of-the-icc-mens.jpg?s=612x612&w=gi&k=20&c=ztPCSdNAW_VLjXdpNzl4pBdKzuFp0w67swgy2Am-LZg='
     },
     {
       name: 'Deepak Chahar',
       role: 'Bowler',
-      image: 'DeepakChar.jpg'
+      image: 'https://documents.iplt20.com/ipl/IPLHeadshot2025/91.png'
     },
     {
       name: 'Prithvi Shaw',
       role: 'Batsman',
-      image: 'Prithvishaw.jpg'
+      image: 'https://documents.iplt20.com/ipl/IPLHeadshot2024/51.png'
     },
     {
       name: 'Sanju Samson',
       role: 'Wicket-keeper',
-      image: 'Sanju.jpg'
+      image: 'https://indiananchors.in/wp-content/uploads/2025/01/Sanju-samson.png'
     },
     {
       name: 'Umran Malik',
       role: 'Bowler',
-      image: 'Umran.jpg'
+      image: 'https://www.hindustantimes.com/static-content/1y/cricket-logos/players/umran-malik.png'
     },
     {
       name: 'Arshdeep Singh',
       role: 'Bowler',
-      image: 'Arshdeep.jpg'
+      image: 'https://media.gettyimages.com/id/2155145712/photo/new-york-new-york-arshdeep-singh-of-india-poses-for-a-portrait-prior-to-the-icc-mens-t20.jpg?s=612x612&w=gi&k=20&c=6Su-q6u9ihQ8CuJSDztRbedBtLSMQblFsSSURim8EIc='
     },
     {
       name: 'Tilak Varma',
       role: 'Batsman',
-      image: 'Tilak.jpg'
+      image: 'https://www.mumbaiindians.com/static-assets/waf-images/14/fe/b4/16-9/1920-1080/aRWZYjG3Hb.png'
     },
     {
       name: 'Mohammed Siraj',
       role: 'Bowler',
-      image: 'Siraj.jpg'
+      image: 'https://documents.bcci.tv/resizedimageskirti/3840_compress.png'
     },
     {
       name: 'Shardul Thakur',
       role: 'All-rounder',
-      image: 'Shardul.jpg'
+      image: 'https://d1k8sn41pix00a.cloudfront.net/media/players/photos/shardul_thakur.webp'
     },
     {
       name: 'Dinesh Karthik',
       role: 'Wicket-keeper',
-      image: 'Dinesh.jpg'
+      image: 'https://static-files.cricket-australia.pulselive.com/headshots/440/10910-camedia.png'
     },
     {
       name: 'Deepak Hooda',
       role: 'All-rounder',
-      image: 'Deepak.jpg'
+      image: 'https://cinetown.s3.ap-south-1.amazonaws.com/people/profile_img/1714157747.png'
     },
   ];
 }

@@ -691,7 +691,7 @@ useEffect(() => {
                     >
                       <div className="player-image-container">
                         <img 
-                          src={`../images/${player.image}`} 
+                          src={player.image} 
                           alt={player.name}
                           className="player-image"
                           onError={(e) => {
@@ -722,7 +722,7 @@ useEffect(() => {
                       {playerPool.slice(0, 12).map((player, index) => (
                         <div key={index} className="mini-player-card">
                           <img 
-                            src={`../images/${player.image}`} 
+                            src={player.image} 
                             alt={player.name}
                             className="mini-player-image"
                             onError={(e) => {
@@ -763,7 +763,7 @@ useEffect(() => {
                         {playerList.map((player, index) => (
                           <div key={index} className="selected-player">
                             <img 
-                              src={`../images/${player.image}`} 
+                              src={player.image} 
                               alt={player.name}
                               className="selected-player-image"
                               onError={(e) => {
@@ -819,7 +819,7 @@ useEffect(() => {
                       <div key={index} className="final-player">
                         <div className="final-player-image-container">
                           <img 
-                            src={`../images/${player.image}`} 
+                            src={player.image} 
                             alt={player.name}
                             className="final-player-image"
                             onError={(e) => {
