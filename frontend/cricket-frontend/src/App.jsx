@@ -11,7 +11,10 @@ import "./App.css";
 const BackendURL = process.env.REACT_APP_BACKEND_URL
 
 // Initialize socket connection
-const socket = io({BackendURL});
+const socket = io(BackendURL, {
+  transports: ['websocket'], // Optional: force websocket
+});
+
 
 
 function App() {
