@@ -480,20 +480,6 @@ function startTurn(io, roomId, rooms) {
     room.pool = generatePlayerPool();
   }
 
-  // Check if selection is complete (all active users have 5 players)
-  const activeUserIds = room.users.map((u) => u.id);
-  const allSelectionsComplete = activeUserIds.every(
-    (userId) => room.selections[userId] && room.selections[userId].length >= 5
-  );
-
-  if (allSelectionsComplete || room.pool.length === 0) {
-    // End the selection
-    const results = getSelectionsWithUsernames(room);
-    io.to(roomId).emit("selection-ended", { results });
-    console.log("Selection ended for room:", roomId);
-    return;
-  }
-
   // Find next user who needs more players
   let attempts = 0;
   while (attempts < room.turnOrder.length) {
@@ -502,16 +488,56 @@ function startTurn(io, roomId, rooms) {
     }
 
     const userId = room.turnOrder[room.currentTurnIndex];
+
+    // Check if user is currently connected
     const user = room.users.find((u) => u.id === userId);
 
+    // If user is not connected, check if they're in disconnected list
     if (!user) {
-      // User not found (disconnected), skip to next
-      room.currentTurnIndex++;
-      attempts++;
-      continue;
+      const disconnectedUser = room.disconnectedUsers?.find(
+        (u) => u.id === userId
+      );
+
+      if (disconnectedUser) {
+        // User is disconnected, check if they need more players
+        const userSelections = room.selections[userId] || [];
+        if (userSelections.length >= 5) {
+          // User has enough players, move to next
+          room.currentTurnIndex++;
+          attempts++;
+          continue;
+        }
+
+        // Check if pool is empty
+        if (room.pool.length === 0) {
+          // End the selection
+          const results = getSelectionsWithUsernames(room);
+          io.to(roomId).emit("selection-ended", { results });
+          console.log("Selection ended for room:", roomId);
+          return;
+        }
+
+        // Auto-select for disconnected user
+        console.log(
+          `User ${disconnectedUser.username} is disconnected, auto-selecting for their turn`
+        );
+        autoSelectForDisconnectedUser(
+          io,
+          roomId,
+          rooms,
+          userId,
+          disconnectedUser.username
+        );
+        return;
+      } else {
+        // User not found anywhere, skip to next
+        room.currentTurnIndex++;
+        attempts++;
+        continue;
+      }
     }
 
-    // Check if user needs more players
+    // Check if connected user needs more players
     const userSelections = room.selections[userId] || [];
     if (userSelections.length >= 5) {
       // User has enough players, move to next
@@ -520,7 +546,16 @@ function startTurn(io, roomId, rooms) {
       continue;
     }
 
-    // Found a user who needs more players
+    // Check if pool is empty
+    if (room.pool.length === 0) {
+      // End the selection
+      const results = getSelectionsWithUsernames(room);
+      io.to(roomId).emit("selection-ended", { results });
+      console.log("Selection ended for room:", roomId);
+      return;
+    }
+
+    // Found a connected user who needs more players
     console.log(
       `Starting turn for user: ${user.username}, current selections: ${userSelections.length}`
     );
@@ -550,10 +585,77 @@ function startTurn(io, roomId, rooms) {
     return;
   }
 
-  // If we get here, all active users have 5 players
-  const results = getSelectionsWithUsernames(room);
-  io.to(roomId).emit("selection-ended", { results });
-  console.log("Selection ended for room:", roomId);
+  // Check if all users have completed their selections
+  const allUserIds = room.turnOrder;
+  const allSelectionsComplete = allUserIds.every(
+    (userId) => room.selections[userId] && room.selections[userId].length >= 5
+  );
+
+  if (allSelectionsComplete) {
+    // End the selection
+    const results = getSelectionsWithUsernames(room);
+    io.to(roomId).emit("selection-ended", { results });
+    console.log("Selection ended for room:", roomId);
+    return;
+  }
+
+  // If we get here, there might be users who still need selections but pool is empty
+  if (room.pool.length === 0) {
+    const results = getSelectionsWithUsernames(room);
+    io.to(roomId).emit("selection-ended", { results });
+    console.log("Selection ended for room (pool empty):", roomId);
+    return;
+  }
+
+  // Continue with next round
+  room.currentTurnIndex = 0;
+  setTimeout(() => {
+    startTurn(io, roomId, rooms);
+  }, 1000);
+}
+
+function autoSelectForDisconnectedUser(io, roomId, rooms, userId, username) {
+  const room = rooms[roomId];
+  if (!room || !room.pool || room.pool.length === 0) {
+    moveToNextTurn(io, roomId, rooms);
+    return;
+  }
+
+  // Randomly select a player
+  const randomIndex = Math.floor(Math.random() * room.pool.length);
+  const playerObj = room.pool[randomIndex];
+
+  console.log(
+    `Auto-selecting ${playerObj.name} for disconnected user ${username}`
+  );
+
+  // Ensure selections array exists
+  if (!room.selections[userId]) {
+    room.selections[userId] = [];
+  }
+
+  // Add player to user's selection
+  room.selections[userId].push(playerObj);
+  // Remove player from pool
+  room.pool = room.pool.filter((p) => p.name !== playerObj.name);
+
+  // Update disconnected user's selections
+  const disconnectedUser = room.disconnectedUsers?.find((u) => u.id === userId);
+  if (disconnectedUser) {
+    disconnectedUser.selections = room.selections[userId];
+  }
+
+  // Broadcast the auto-selection for disconnected user
+  io.to(roomId).emit("auto-selected-disconnected", {
+    player: playerObj,
+    user: userId,
+    username: username,
+    selections: getSelectionsWithUsernames(room),
+    pool: room.pool,
+  });
+
+  // Move to next turn immediately (no delay for disconnected users)
+  moveToNextTurn(io, roomId, rooms);
 }
 
 function autoSelect(io, roomId, rooms) {
@@ -652,6 +754,7 @@ function shuffleArray(arr) {
   }
   return shuffled;
 }
+
 function generatePlayerPool() {
   return [
     {
